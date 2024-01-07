@@ -7,12 +7,14 @@ from collections import OrderedDict, namedtuple
 from enum import IntEnum
 
 from .common import (
+    DEPRECATION_KEYWORDS,
     EXAMPLES_KEYWORDS,
     PARAM_KEYWORDS,
     RAISES_KEYWORDS,
     RETURNS_KEYWORDS,
     YIELDS_KEYWORDS,
     Docstring,
+    DocstringDeprecated,
     DocstringExample,
     DocstringMeta,
     DocstringParam,
@@ -58,6 +60,8 @@ DEFAULT_SECTIONS = [
     Section("Examples", "examples", SectionType.SINGULAR),
     Section("Returns", "returns", SectionType.SINGULAR_OR_MULTIPLE),
     Section("Yields", "yields", SectionType.SINGULAR_OR_MULTIPLE),
+    Section("Deprecated", "deprecated", SectionType.SINGULAR),
+    Section("Deprecation", "deprecated", SectionType.SINGULAR),
 ]
 
 
@@ -99,7 +103,6 @@ class GoogleParser:
         :param title: title of section containing element
         :return:
         """
-
         section = self.sections[title]
 
         if (
@@ -138,6 +141,10 @@ class GoogleParser:
         if section.key in EXAMPLES_KEYWORDS:
             return DocstringExample(
                 args=[section.key], snippet=None, description=desc
+            )
+        if section.key in DEPRECATION_KEYWORDS:
+            return DocstringDeprecated(
+                args=[section.key], description=desc, version=None
             )
         if section.key in PARAM_KEYWORDS:
             raise ParseError("Expected paramenter name.")
@@ -309,7 +316,12 @@ def compose(
     """
 
     def process_one(
-        one: T.Union[DocstringParam, DocstringReturns, DocstringRaises]
+        one: T.Union[
+            DocstringParam,
+            DocstringReturns,
+            DocstringRaises,
+            DocstringDeprecated,
+        ]
     ):
         head = ""
 
@@ -384,6 +396,8 @@ def compose(
     )
 
     process_sect("Raises:", docstring.raises or [])
+
+    process_sect("Deprecation:", docstring.deprecation or None)
 
     if docstring.returns and not docstring.many_returns:
         ret = docstring.returns
